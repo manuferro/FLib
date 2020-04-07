@@ -59,5 +59,24 @@ namespace FLib.Kace.Ticket
         {
 
         }
+
+        public int getTicketIdByIndex(int index)
+        {
+            try
+            {
+                return Tickets[index].id;
+            } catch (Exception ex) { return -1; }
+            
+        }
+
+        public void updateTicket(Ticket ticket)
+        {
+            if ((ticket == null) || (ticket.id == 0)) return;
+            int id = ticket.id;
+            int index = Tickets.FindIndex(x => x.id == id);
+            Tickets[index] = ticket;
+            obsTickets[index] = ticket;
+
+        }
     }
 }

@@ -13,5 +13,6 @@ namespace FLib.Kace
         public static string URL_TICK_CHANGES = @"/api/service_desk/tickets/$$ID$/changes";
 
         public static string TICK_SHAPING = @"hd_ticket all, category limited,owner limited, submitter limited,status limited, priority limited,impact limited";
+        public static string TICK__DETAILS_SHAPING = @"hd_ticket all, category limited,owner limited, submitter limited,status limited, priority limited,impact limited";
     }
 }

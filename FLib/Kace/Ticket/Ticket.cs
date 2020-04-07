@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows;
 
 namespace FLib.Kace.Ticket
 {
@@ -19,6 +20,13 @@ namespace FLib.Kace.Ticket
         public KStatus status { get; set; }
         public KPriority priority { get; set; }
         public KImpact impact { get; set; }
+        public Visibility closed_visibility {
+            get { 
+                
+                if ((status != null) && (status.state == "closed")) return Visibility.Hidden; 
+                return Visibility.Visible; 
+            }
+        } 
     }
 
     public class KPriority
@@ -42,7 +50,7 @@ namespace FLib.Kace.Ticket
         public int id { get; set; }
         public string name { get; set; }
         public int ordinal { get; set; }
-        public string statue { get; set; }
+        public string state { get; set; }
     }
 
 
