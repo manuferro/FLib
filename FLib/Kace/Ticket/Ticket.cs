@@ -14,6 +14,8 @@ namespace FLib.Kace.Ticket
         public string custom_16 { get; set; }
         public string custom_4 { get; set; }    //Phone call to tech,
         public string resolution { get; set; }
+        public DateTime created { get; set; }
+        public DateTime modified { get; set; }
         public KCategory category { get; set; }
         public KUser owner { get; set; }
         public KUser submitter { get; set; }
@@ -27,6 +29,36 @@ namespace FLib.Kace.Ticket
                 return Visibility.Visible; 
             }
         } 
+
+        public string plainResolution
+        {
+            get
+            {
+                string _plainResolution = System.Web.HttpUtility.HtmlDecode(resolution);
+                
+                return _plainResolution.Replace("<br>","\r\n").Replace("<BR>", "\r\n").Replace("<br />", "\r\n").Replace("<BR />", "\r\n");
+                
+            }
+            set
+            {
+                resolution = value;
+            }
+        }
+
+        public KUser me { get; set; }
+        public string manuele
+        {
+            get { return "pippo"; }
+            set { }
+        }
+
+        public int isOwnerMe
+        {
+            get { if ((me != null) && (owner != null) && (me.user_name == owner.user_name)) return 1; return 0; }
+            set { }
+        }
+
+
     }
 
     public class KPriority

@@ -10,6 +10,7 @@ namespace FLib.Kace.Ticket
     {
         public int Count { get; set; }
         public string Warning { get; set; }
+        public KUser me { get; set; }
 
         public List<Ticket> Tickets { get; set; }
         private ObservableCollection<Ticket> obsTickets = null;
@@ -49,6 +50,7 @@ namespace FLib.Kace.Ticket
 
             foreach (Ticket ticket in Tickets)
             {
+                ticket.me = me;
                 obsTickets.CollectionChanged += ObsTickets_CollectionChanged;
                 obsTickets.Add(ticket);
             }

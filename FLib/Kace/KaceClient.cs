@@ -21,20 +21,30 @@ namespace FLib.Kace
 {
     public class KaceClient
     {
-        public string Login { get; set; }
+        private string _login = "";
+        public string Login {
+            get { return _login; }
+            set { _login = value; setMeUsername(value); }
+        }
         public string Passwd { get; set; }
         public string Addr { get; set; }
         public string Organization { get; set; }
         public TicketList Tickets { get; set; }
         public Ticket.Ticket CurrentTicket { get; set; }
+        public RestResponse Token { get; set; }
+        public KUser me { get; set; }
+
         private RestClient _client = null;
         private RestRequest _request = null;
         private IRestResponse _response = null;
         private IRestResponse _responseLogin = null;
         private HttpStatusCode _statusCode;
+        
         private string _status;
         private string _responseContent;
         private bool _loggedIn = false;
+
+        
 
 
         public KaceClient()
@@ -47,27 +57,56 @@ namespace FLib.Kace
             _request = new RestRequest(url, method, RestSharp.DataFormat.Json);
             _request.RequestFormat = RestSharp.DataFormat.Json;
             _request.Method = method;
-            if ((!isLogin) && (_responseLogin != null))
+            if ((_responseLogin == null) && (Token != null)) _responseLogin = Token;
+            if ((_response == null) && (Token != null)) _response = Token;
+
+            if ((!isLogin) )
             {
 
-                if ((_response.Cookies != null))
+                if ((_responseLogin != null))
                 {
-                    foreach (RestResponseCookie c in _responseLogin.Cookies)
-                        _request.AddCookie(c.Name, c.Value.ToString());
-                }
+                    if ((_response.Cookies != null))
+                    {
+                        foreach (RestResponseCookie c in _responseLogin.Cookies)
+                            _request.AddCookie(c.Name, c.Value.ToString());
+                    }
 
-                if ((_responseLogin.Headers != null))
-                {
+                    if ((_responseLogin.Headers != null))
+                    {
 
-                    foreach (Parameter p in _responseLogin.Headers)
-                        if (p.Name.StartsWith("x-dell"))
-                            _request.AddHeader(p.Name, p.Value.ToString());
+                        foreach (Parameter p in _responseLogin.Headers)
+                            if (p.Name.StartsWith("x-dell"))
+                            {
+                                _request.AddHeader(p.Name, p.Value.ToString());
+                            }
+                    }
                 }
 
                 _request.AddHeader("x-dell-api-version", Const.KACE_VERSION);
             }
+            
            
             return false;
+        }
+
+
+        private void saveResponse()
+        {
+            string cookies = "";
+            if ((_response.Cookies != null))
+            {
+                foreach (RestResponseCookie c in _responseLogin.Cookies)
+                    cookies += "CK:\t" + c.Name + "\t:\t" + c.Value.ToString() + "\r\n";
+            }
+
+            if ((_responseLogin.Headers != null))
+            {
+
+                foreach (Parameter p in _responseLogin.Headers)
+                    cookies += "PR:\t"+ p.Name + "\t:\t" + p.Value.ToString() + "\r\n";
+            }
+            File.WriteAllText(cookies, @"c:\projects\response.txt");
+
         }
 
         private bool kaceRequest(  )
@@ -102,7 +141,7 @@ namespace FLib.Kace
 
         }
 
-
+        
 
         public bool login()
         {
@@ -112,10 +151,15 @@ namespace FLib.Kace
             if (kaceRequest())
             {
                 _responseLogin = _response;
+                Token = (RestResponse)_response;
+                //getToken(); //save token for next run
                 return true;
             }
             return false;
         }
+
+
+
 
         public bool getTicketList(string search="", int limit = 50)
         {
@@ -141,6 +185,8 @@ namespace FLib.Kace
                 try
                 {
                     Tickets = JsonConvert.DeserializeObject<TicketList>(File.ReadAllText(fileName));
+                    Tickets.me = me;
+
                 }
                 catch (Exception ex) { return false; }
                 return true;
@@ -150,6 +196,11 @@ namespace FLib.Kace
 
         }
 
+        public void setMeUsername(string value)
+        {
+            if (me == null) me = new KUser();
+            me.user_name = value;
+        }
 
         public bool getTicketDetails(int id)
         {
