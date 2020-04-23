@@ -15,7 +15,9 @@ using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using FLib.Kace.Ticket;
+using FLib.FType;
 using System.Windows;
+using System.Collections.Specialized;
 
 namespace FLib.Kace
 {
@@ -31,7 +33,8 @@ namespace FLib.Kace
         public string Organization { get; set; }
         public TicketList Tickets { get; set; }
         public Ticket.Ticket CurrentTicket { get; set; }
-        public RestResponse Token { get; set; }
+        public FKeyValueStringList Token_cookies { get; set; }
+        public FKeyValueStringList Token_headers { get; set; }
         public KUser me { get; set; }
 
         private RestClient _client = null;
@@ -50,6 +53,8 @@ namespace FLib.Kace
         public KaceClient()
         {
             Organization = "Default";
+            Token_cookies = new FKeyValueStringList();
+            Token_headers = new FKeyValueStringList();
         }
 
         private bool prepareRequest(string url, Method method, bool isLogin = false)
@@ -57,31 +62,26 @@ namespace FLib.Kace
             _request = new RestRequest(url, method, RestSharp.DataFormat.Json);
             _request.RequestFormat = RestSharp.DataFormat.Json;
             _request.Method = method;
-            if ((_responseLogin == null) && (Token != null)) _responseLogin = Token;
-            if ((_response == null) && (Token != null)) _response = Token;
 
             if ((!isLogin) )
             {
 
-                if ((_responseLogin != null))
+                if ((Token_cookies != null) && (Token_cookies.Count >= 0))
                 {
-                    if ((_response.Cookies != null))
+                    foreach (FKeyValueString entry in Token_cookies)
                     {
-                        foreach (RestResponseCookie c in _responseLogin.Cookies)
-                            _request.AddCookie(c.Name, c.Value.ToString());
-                    }
-
-                    if ((_responseLogin.Headers != null))
-                    {
-
-                        foreach (Parameter p in _responseLogin.Headers)
-                            if (p.Name.StartsWith("x-dell"))
-                            {
-                                _request.AddHeader(p.Name, p.Value.ToString());
-                            }
+                        _request.AddCookie(entry.Key, entry.Value);
                     }
                 }
 
+                if ((Token_headers != null) && (Token_headers.Count>0))
+                {
+                    foreach (FKeyValueString entry in Token_headers)
+                    {
+                        if (entry.Key.StartsWith("x-dell"))
+                            _request.AddHeader(entry.Key, entry.Value);
+                    }
+                }
                 _request.AddHeader("x-dell-api-version", Const.KACE_VERSION);
             }
             
@@ -90,22 +90,32 @@ namespace FLib.Kace
         }
 
 
-        private void saveResponse()
+        private void saveResponseCookies()
         {
-            string cookies = "";
+            
+            StringCollection s = new StringCollection();
+
             if ((_response.Cookies != null))
             {
+                if (Token_cookies == null) Token_cookies = new FType.FKeyValueStringList();
+                else Token_cookies.Clear();
                 foreach (RestResponseCookie c in _responseLogin.Cookies)
-                    cookies += "CK:\t" + c.Name + "\t:\t" + c.Value.ToString() + "\r\n";
+                    Token_cookies.Add(c.Name, c.Value);
             }
+        }
 
-            if ((_responseLogin.Headers != null))
+        private void saveResponseHeaders()
+        {
+
+                if ((_responseLogin.Headers != null))
             {
-
+                if (Token_headers == null) Token_headers = new FType.FKeyValueStringList();
+                else Token_headers.Clear();
                 foreach (Parameter p in _responseLogin.Headers)
-                    cookies += "PR:\t"+ p.Name + "\t:\t" + p.Value.ToString() + "\r\n";
+                    Token_headers.Add(p.Name, p.Value.ToString());
+                
             }
-            File.WriteAllText(cookies, @"c:\projects\response.txt");
+
 
         }
 
@@ -130,18 +140,27 @@ namespace FLib.Kace
             return false;
         }
 
+        private bool putGenericUpdate(string url, string jsonData)
+        {
+            prepareRequest(url, Method.PUT, false);
+            _request.AddParameter("application/json", jsonData, ParameterType.RequestBody);// AddJsonBody(tickets);
+            return kaceRequest();
 
-        private bool getGenericRequest(string url,  int limit = 100, string filter = "", string shaping = "")
+        }
+
+
+        private bool getGenericRequest(string url,  int limit = 100, string filter = "", string shaping = "", string sorting = "")
         {
             prepareRequest(url, Method.GET, false);
             if (shaping != "") _request.AddParameter("shaping", shaping);
             if (limit > 0) _request.AddParameter("paging", "limit " + limit);
             if (filter != "") _request.AddParameter("filtering", filter);
+            if (sorting != "") _request.AddParameter("sorting", sorting);
+
             return kaceRequest();
 
         }
 
-        
 
         public bool login()
         {
@@ -151,7 +170,9 @@ namespace FLib.Kace
             if (kaceRequest())
             {
                 _responseLogin = _response;
-                Token = (RestResponse)_response;
+                //Token = (RestResponse)_response;
+                saveResponseCookies();
+                saveResponseHeaders();
                 //getToken(); //save token for next run
                 return true;
             }
@@ -160,16 +181,23 @@ namespace FLib.Kace
 
 
 
-
-        public bool getTicketList(string search="", int limit = 50)
+        /// <summary>
+        /// Retrive the ticket list from Kace server (after login)
+        /// </summary>
+        /// <param name="search"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public bool getTicketList(string search="", int limit = 50, string sorting = "created desc")
         {
             if (limit > 500) limit = 500;
-            bool _result = getGenericRequest(Const.URL_TICK, limit, search, Const.TICK_SHAPING);
+            
+            bool _result = getGenericRequest(Const.URL_TICK, limit, search, Const.TICK_SHAPING, sorting);
             if (_result)
             {
                 try
                 {
                     Tickets = JsonConvert.DeserializeObject<TicketList>(_responseContent);
+                    Tickets.me = me;
                 }
                 catch (Exception ex) { return false; }
                 return true;
@@ -178,6 +206,14 @@ namespace FLib.Kace
             return false;
         }
 
+
+
+
+        /// <summary>
+        /// Retrive the ticket list from a json file (mainly for test purpouse)
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         public bool getTicketListFromFile(string fileName = "")
         {
             if (File.Exists(fileName))
@@ -202,7 +238,7 @@ namespace FLib.Kace
             me.user_name = value;
         }
 
-        public bool getTicketDetails(int id)
+        public  bool getTicketDetails(int id)
         {
             bool _result =  getGenericRequest(Const.URL_TICK_DETAIL.Replace("$$ID$",id.ToString()), 0, "", Const.TICK__DETAILS_SHAPING);
 
@@ -225,15 +261,40 @@ namespace FLib.Kace
 
         }
 
-        private bool getTicketChanges(int id)
+        public bool getTicketChanges(int id)
         {
-            return getGenericRequest(Const.URL_TICK_CHANGES.Replace("$$ID$", id.ToString()), 0, "", "");
+            bool _result = getGenericRequest(Const.URL_TICK_CHANGES.Replace("$$ID$", id.ToString()),100,"",Const.TICK_CHANGES_SHAPING);
+
+            if (_result)
+            {
+                try
+                {
+                    ChangeList _changes = JsonConvert.DeserializeObject<ChangeList>(_responseContent);
+                    CurrentTicket.changes = _changes.Changes;
+                }
+                catch (Exception ex) { return false; }
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool updateTicket(int id, string jsonData)
+        {
+            string url = Const.URL_TICK_DETAIL.Replace("$$ID$", id.ToString());
+            
+            bool _result = putGenericUpdate(url, jsonData);
+
+            return _result;
         }
 
         public string Status { get { return _status; } }
         public string Content { get { return _responseContent; } }
 
     }
+
+
+
 
     public class KaceLogin
     {

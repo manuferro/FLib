@@ -22,6 +22,11 @@ namespace FLib.Kace.Ticket
         public KStatus status { get; set; }
         public KPriority priority { get; set; }
         public KImpact impact { get; set; }
+        public List<Change> changes { get; set; }
+        public List<SlaDate> sla_dates { get; set; }
+        public string resolution_plaintext { get; set; }
+
+
         public Visibility closed_visibility {
             get { 
                 
@@ -34,9 +39,13 @@ namespace FLib.Kace.Ticket
         {
             get
             {
-                string _plainResolution = System.Web.HttpUtility.HtmlDecode(resolution);
-                
-                return _plainResolution.Replace("<br>","\r\n").Replace("<BR>", "\r\n").Replace("<br />", "\r\n").Replace("<BR />", "\r\n");
+                if (resolution == null) return "";
+                try
+                {
+                    string _plainResolution = System.Web.HttpUtility.HtmlDecode(resolution);
+                    return _plainResolution.Replace("<br>", "\r\n").Replace("<BR>", "\r\n").Replace("<br />", "\r\n").Replace("<BR />", "\r\n");
+                }
+                catch(Exception ex) { return ""; }
                 
             }
             set
@@ -59,6 +68,20 @@ namespace FLib.Kace.Ticket
         }
 
 
+    }
+
+    public class StandardTicketValues
+    {
+        public string title { get; set; }
+        public int custom_1 { get; set; }   //time in minutes
+        public string custom_16 { get; set; }
+        public string custom_4 { get; set; }    //Phone call to tech,
+        public string resolution { get; set; }
+        public KCategory category { get; set; }
+        public KUser owner { get; set; }
+        public KStatus status { get; set; }
+        public KPriority priority { get; set; }
+        public KImpact impact { get; set; }
     }
 
     public class KPriority
@@ -90,5 +113,11 @@ namespace FLib.Kace.Ticket
     {
         public int id { get; set; }
         public string name { get; set; }
+    }
+
+    public class SlaDate
+    {
+        public int priority_id { get; set; }
+        public string resolution_date { get; set; }
     }
 }
