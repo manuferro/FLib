@@ -14,12 +14,14 @@ namespace FLib.Kace
 
         public string getShortName()
         {
-            if ((full_name != null) && (full_name.Contains(", ")) && (full_name.Contains(" (")))
+            if ((full_name != null) && ((full_name.Contains(", ")) || (full_name.Contains(". "))) && (full_name.Contains(" (")))
             {
                 string name = full_name;
                 string shortName = "";
                 name = name.Substring(0, name.IndexOf(" ("));
-                shortName = name.Substring(0, name.IndexOf(", ")) + name.Substring(name.IndexOf(", ") + 2, 1).ToUpper();
+                if (full_name.Contains(", ")) shortName = name.Substring(0, name.IndexOf(", ")) + name.Substring(name.IndexOf(", ") + 2, 1).ToUpper();
+                else if (full_name.Contains(". ")) shortName = name.Substring(0, name.IndexOf(". ")) + name.Substring(name.IndexOf(". ") + 2, 1).ToUpper();
+
                 return shortName;
             }
             return "";

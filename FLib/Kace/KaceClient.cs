@@ -279,6 +279,14 @@ namespace FLib.Kace
             return false;
         }
 
+
+        /// <summary>
+        /// update ticket via put
+        /// strating from json parameter
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="jsonData"></param>
+        /// <returns></returns>
         public bool updateTicket(int id, string jsonData)
         {
             string url = Const.URL_TICK_DETAIL.Replace("$$ID$", id.ToString());
@@ -286,6 +294,30 @@ namespace FLib.Kace
             bool _result = putGenericUpdate(url, jsonData);
 
             return _result;
+        }
+
+        public bool updateTicketSingleParam(int id, string param, string value)
+        {
+            return updateTicket(id, @"{ ""Tickets"": [ { """+ param + @""": """ + value + @"""   }  ]}");
+        }
+
+
+        /// <summary>
+        /// update just the title of the ticket
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="newTitle"></param>
+        /// <returns></returns>
+        public bool updateTicketTitle(int id, string newTitle)
+        {
+            return updateTicketSingleParam(id, "title", newTitle);
+        }
+
+
+        public string getUrlticket(int id)
+        {
+            string url = Addr + Const.URL_TICK_LINK.Replace("$$ID$", id.ToString());
+            return url;
         }
 
         public string Status { get { return _status; } }

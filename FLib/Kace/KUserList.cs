@@ -17,8 +17,11 @@ namespace FLib.Kace
 
         public void getFromJson(string Json)
         {
-            Object test = JsonConvert.DeserializeObject(Json);
-
+            try
+            {
+                Object test = JsonConvert.DeserializeObject(Json);
+            }
+            catch (Exception ex) { return ; }
             var userList = JsonConvert.DeserializeObject<KUserList>(Json);
             Users = userList.Users;
         }
